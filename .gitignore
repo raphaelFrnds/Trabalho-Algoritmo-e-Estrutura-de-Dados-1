@@ -1,0 +1,14 @@
+# Executaveis gerados pelo make / gcc
+main
+test_modulo*
+!test_modulo*.c
+test_final
+!test_final.c
+simulacao_pousos
+!simulacao_pousos.c
+controle_pousos
+*.exe
+*.o
+*.out
+*.dSYM/
+.vscode/
