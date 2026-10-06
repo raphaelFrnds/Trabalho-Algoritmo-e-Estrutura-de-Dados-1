@@ -68,7 +68,7 @@ make memcheck
 Cada `README.md` de módulo também traz o comando `gcc` completo, para
 quem não tem `make`.
 
-**Resultado atual: 172 testes passando em 6 módulos, 0 falhas.**
+
 Compila sem avisos com `-std=c11 -Wall -Wextra -pedantic -Werror` (gcc
 e clang), sem vazamentos no `valgrind` e sem erros com
 `-fsanitize=address,undefined`.
