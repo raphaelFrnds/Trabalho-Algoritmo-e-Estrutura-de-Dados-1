@@ -1,13 +1,20 @@
-# Makefile da raiz: roda os testes de todos os modulos
-MODULOS = $(wildcard modulo*/)
+# Makefile - Interface grafica (GTK 3)
+CC     = gcc
+CFLAGS = -std=c11 -Wall -Wextra -g $(shell pkg-config --cflags gtk+-3.0)
+LIBS   = $(shell pkg-config --libs gtk+-3.0)
 
-test:
-	@for d in $(MODULOS); do echo "== $$d =="; $(MAKE) -s -C $$d test || exit 1; done
+BASE = voo.c utils.c validacao.c pilha_array.c undo_redo_reclassificacao.c \
+       fila_encadeada.c fila_prioridade.c lista_encadeada_simples.c sistema_controle.c
 
-memcheck:
-	@for d in $(MODULOS); do [ "$$d" = "modulo1_semanas1-3_modularizacao/" ] && continue; echo "== $$d =="; $(MAKE) -s -C $$d memcheck || exit 1; done
+all: controle_pousos_gui
+
+controle_pousos_gui: interface_gtk.c $(BASE)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+run: controle_pousos_gui
+	./controle_pousos_gui
 
 clean:
-	@for d in $(MODULOS); do $(MAKE) -s -C $$d clean; done
+	rm -f controle_pousos_gui *.exe
 
-.PHONY: test memcheck clean
+.PHONY: all run clean
