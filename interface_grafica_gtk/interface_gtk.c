@@ -8,6 +8,7 @@
  * interface sem tocar nas estruturas e a vantagem de ter separado
  * os TADs em arquivos proprios.
  */
+#include <string.h>
 #include <gtk/gtk.h>
 #include "sistema_controle.h"
 #include "validacao.h"
@@ -29,6 +30,22 @@ typedef struct {
 
 /* Colunas das tabelas. */
 enum { COL_POSICAO, COL_ID, COL_CODIGO, COL_PRIORIDADE, COL_HORA, NUM_COLUNAS };
+
+/*
+ * Cor de cada nivel de prioridade, na mesma ordem de TABELA_PRIORIDADES
+ * (indice = nivel - 1). So a celula "Prioridade" e pintada; o texto
+ * continua escrito, entao a cor nunca e a unica pista do nivel.
+ */
+static const struct {
+    const char *fundo;
+    const char *texto;
+} CORES_PRIORIDADE[NUM_PRIORIDADES] = {
+    {"#C8432B", "#FBF8F2"},   /* mayday      - vermelho */
+    {"#E07B24", "#1B1206"},   /* panpan      - laranja  */
+    {"#E8B83A", "#1B1206"},   /* combustivel - amarelo  */
+    {"#4A86C5", "#0F1B2A"},   /* regular     - azul     */
+    {"#8A9AAD", "#0F1B2A"},   /* treinamento - cinza    */
+};
 
 /* ---------- Funcoes auxiliares da interface ---------- */
 
@@ -226,6 +243,34 @@ static GtkWidget *criar_combo_prioridades(void)
     return combo;
 }
 
+/*
+ * Chamada pelo GTK antes de desenhar cada celula da coluna "Prioridade":
+ * le o nome do nivel na linha e pinta a celula com a cor desse nivel.
+ */
+static void pintar_prioridade(GtkTreeViewColumn *coluna, GtkCellRenderer *celula,
+                              GtkTreeModel *modelo, GtkTreeIter *iter, gpointer dados)
+{
+    gchar *nome = NULL;
+    (void)coluna;
+    (void)dados;
+
+    gtk_tree_model_get(modelo, iter, COL_PRIORIDADE, &nome, -1);
+    for (int i = 0; i < NUM_PRIORIDADES; i++) {
+        if (nome != NULL && strcmp(nome, TABELA_PRIORIDADES[i].nome) == 0) {
+            g_object_set(celula,
+                         "cell-background", CORES_PRIORIDADE[i].fundo,
+                         "foreground", CORES_PRIORIDADE[i].texto,
+                         "weight", PANGO_WEIGHT_BOLD, NULL);
+            g_free(nome);
+            return;
+        }
+    }
+    /* Nivel desconhecido: volta ao visual padrao do tema. */
+    g_object_set(celula, "cell-background-set", FALSE, "foreground-set", FALSE,
+                 "weight-set", FALSE, NULL);
+    g_free(nome);
+}
+
 /* Cria uma tabela (TreeView) ligada a um GtkListStore. */
 static GtkWidget *criar_tabela(GtkListStore **loja, const char *titulo_primeira)
 {
@@ -239,6 +284,10 @@ static GtkWidget *criar_tabela(GtkListStore **loja, const char *titulo_primeira)
         GtkCellRenderer *celula = gtk_cell_renderer_text_new();
         GtkTreeViewColumn *coluna =
             gtk_tree_view_column_new_with_attributes(titulos[i], celula, "text", i, NULL);
+        if (i == COL_PRIORIDADE) {
+            g_object_set(celula, "xpad", 10, NULL);
+            gtk_tree_view_column_set_cell_data_func(coluna, celula, pintar_prioridade, NULL, NULL);
+        }
         gtk_tree_view_append_column(GTK_TREE_VIEW(tabela), coluna);
     }
     return tabela;
