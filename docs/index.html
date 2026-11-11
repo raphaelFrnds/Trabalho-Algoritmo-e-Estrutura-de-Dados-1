@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Torre de Controle · Sistema de Controle de Pousos</title>
+<meta name="description" content="Simulador da sequência de pousos de uma torre de controle. O núcleo em C (fila de prioridade, lista encadeada e pilha) roda no navegador via WebAssembly.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<div class="pagina">
+
+  <header class="topo">
+    <div>
+      <p class="sobretitulo">Torre de Controle</p>
+      <h1>Sistema de Controle de Pousos</h1>
+      <p class="resumo">Uma pista, um pouso por vez. O voo mais urgente pousa primeiro; no empate, quem chegou antes.</p>
+    </div>
+    <div class="topo-acoes">
+      <button type="button" id="botao-exemplo" class="botao">Carregar exemplo</button>
+      <button type="button" id="botao-reiniciar" class="botao">Reiniciar</button>
+    </div>
+  </header>
+
+  <p id="status" class="status" role="status" aria-live="polite">Carregando o núcleo em WebAssembly…</p>
+
+  <section class="faixa">
+    <form id="form-voo" class="cartao novo-voo" autocomplete="off">
+      <h2>Novo voo</h2>
+      <div class="campos">
+        <label class="campo campo-codigo">
+          <span>Código</span>
+          <input id="codigo" type="text" maxlength="11" placeholder="AZU4521" required>
+        </label>
+        <label class="campo">
+          <span>Prioridade</span>
+          <select id="prioridade"></select>
+        </label>
+        <button type="submit" class="botao">Registrar voo</button>
+      </div>
+    </form>
+
+    <div class="cartao proximo">
+      <h2>Próximo a pousar</h2>
+      <div class="proximo-linha">
+        <div id="proximo-voo" class="proximo-voo"><span class="vazio">Nenhum voo aguardando</span></div>
+        <button type="button" id="botao-pouso" class="botao botao-principal">Autorizar pouso</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="colunas">
+    <div class="cartao">
+      <div class="cartao-topo">
+        <h2>Fila de espera</h2>
+        <p id="aguardando" class="nota">0 aguardando</p>
+      </div>
+      <div class="rolagem">
+        <table>
+          <thead>
+            <tr><th class="col-sel"><span class="so-leitor">Selecionar</span></th><th>Pos.</th><th>Código</th><th>Prioridade</th><th>Chegada</th></tr>
+          </thead>
+          <tbody id="corpo-fila"></tbody>
+        </table>
+        <p id="fila-vazia" class="vazio bloco">Registre um voo para começar, ou carregue o exemplo.</p>
+      </div>
+      <div class="acoes">
+        <p id="selecionado" class="nota">Selecione um voo na fila para corrigir a prioridade.</p>
+        <div class="acoes-linha">
+          <label class="campo">
+            <span class="so-leitor">Nova prioridade</span>
+            <select id="nova-prioridade" disabled></select>
+          </label>
+          <button type="button" id="botao-reclassificar" class="botao" disabled>Reclassificar</button>
+          <button type="button" id="botao-desfazer" class="botao" disabled>Desfazer</button>
+          <button type="button" id="botao-refazer" class="botao" disabled>Refazer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <div class="cartao-topo">
+        <h2>Histórico de pousos</h2>
+        <p class="nota">mais recente primeiro</p>
+      </div>
+      <div class="rolagem">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Código</th><th>Prioridade</th><th>Chegada</th></tr>
+          </thead>
+          <tbody id="corpo-historico"></tbody>
+        </table>
+        <p id="historico-vazio" class="vazio bloco">Nenhum pouso autorizado ainda.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cartao">
+    <div class="cartao-topo">
+      <h2>Por dentro: 5 filas FIFO, uma por nível</h2>
+      <p class="nota">frente à esquerda</p>
+    </div>
+    <div id="niveis" class="niveis"></div>
+    <p class="nota explicacao">Entrar é O(1): o voo vai direto para <code>niveis[prioridade − 1]</code>. Sair olha no máximo 5 níveis e tira a frente do primeiro que não estiver vazio.</p>
+  </section>
+
+  <footer class="rodape">
+    <p>O que roda aqui é o mesmo código C do projeto (fila de prioridade, lista encadeada e pilha), compilado para WebAssembly. A página só chama as funções de <code>sistema_controle.h</code>.</p>
+    <p>Raphael Fernandes · Algoritmos e Estrutura de Dados I · <a href="https://github.com/raphaelFrnds/Trabalho-Algoritmo-e-Estrutura-de-Dados-1">código no GitHub</a></p>
+  </footer>
+
+</div>
+<script src="nucleo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
