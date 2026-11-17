@@ -111,7 +111,6 @@ function atualizar() {
   desenharFila();
   desenharHistorico();
   desenharNiveis();
-  desenharComparacao();
   desenharAcoes(selecionado);
 
   destaque = new Set();   // o lampejo vale so para esta atualizacao
@@ -215,60 +214,6 @@ function desenharNiveis() {
     linha.append(criar("span", "nivel-indice", "niveis[" + i + "]"), rotulo, voos);
     caixa.append(linha);
   });
-}
-
-/*
- * Compara a ordem de pouso de uma fila comum (so ordem de chegada) com a
- * ordem real da torre. A ordem da torre vem pronta do C (estado.fila); a
- * fila comum e so a mesma lista ordenada pelo id, que e a ordem de chegada.
- */
-function desenharComparacao() {
-  const fifo = el("lista-fifo");
-  const torre = el("lista-torre");
-  fifo.replaceChildren();
-  torre.replaceChildren();
-
-  const porChegada = [...estado.fila].sort((a, b) => a.id - b.id);
-  const posFifo = new Map(porChegada.map((voo, i) => [voo.id, i]));
-
-  const linha = (voo, i, extra) => {
-    const item = criar("li", destaque.has(voo.id) ? "mudou" : "");
-    item.append(
-      criar("span", "ordem-num", (i + 1) + "º"),
-      criar("span", "ordem-codigo", voo.codigo),
-      etiqueta(voo.prioridade),
-      extra || criar("span", "delta"),
-    );
-    return item;
-  };
-
-  porChegada.forEach((voo, i) => fifo.append(linha(voo, i)));
-
-  let maior = null;
-  estado.fila.forEach((voo, i) => {
-    const ganho = posFifo.get(voo.id) - i;   // > 0: subiu em relacao a fila comum
-    let delta;
-    if (ganho > 0) {
-      delta = criar("span", "delta subiu", "↑" + ganho);
-      delta.title = "Subiu " + ganho + (ganho === 1 ? " posição" : " posições") + " em relação à fila comum";
-    } else if (ganho < 0) {
-      delta = criar("span", "delta desceu", "↓" + (-ganho));
-      delta.title = "Desceu " + (-ganho) + (ganho === -1 ? " posição" : " posições") + " em relação à fila comum";
-    } else {
-      delta = criar("span", "delta igual", "=");
-      delta.title = "Mesma posição da fila comum";
-    }
-    torre.append(linha(voo, i, delta));
-    if (ganho > 0 && (maior === null || ganho > maior.ganho)) maior = { voo, ganho, de: posFifo.get(voo.id) + 1, para: i + 1 };
-  });
-
-  const vazio = estado.fila.length === 0;
-  el("comparacao").hidden = vazio;
-  el("comparacao-vazia").hidden = !vazio;
-  el("comparacao-resumo").textContent = maior
-    ? "Maior diferença: " + maior.voo.codigo + " (" + maior.voo.prioridade + ") seria o " + maior.de +
-      "º a pousar numa fila comum; na torre, é o " + maior.para + "º."
-    : "";
 }
 
 function desenharAcoes(selecionado) {
