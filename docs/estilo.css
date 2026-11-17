@@ -170,7 +170,7 @@ td.chegou { font-family: var(--mono); color: var(--texto-suave); }
 .ficha.mudou { animation: lampejo 1.8s ease-out; }
 .proximo-voo.mudou { animation: lampejo 1.8s ease-out; border-radius: 8px; }
 @media (prefers-reduced-motion: reduce) {
-  #corpo-fila tr.mudou td, #corpo-historico tr.mudou td, .ficha.mudou, .proximo-voo.mudou {
+  #corpo-fila tr.mudou td, #corpo-historico tr.mudou td, .ficha.mudou, .proximo-voo.mudou, .lista-ordem li.mudou {
     animation: none; background-color: #fde3b5;
   }
 }
@@ -195,6 +195,25 @@ td.chegou { font-family: var(--mono); color: var(--texto-suave); }
   border: 1px solid var(--borda); border-radius: 6px; padding: 3px 9px; background: var(--painel);
 }
 .nivel-vazio { font-family: var(--mono); font-size: 13px; color: var(--texto-fraco); }
+
+/* ---------- Fila comum x Torre ---------- */
+.comparacao { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.comparacao-coluna { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.comparacao-coluna h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.comparacao-coluna h3 .nota { font-size: 13px; font-weight: 400; }
+.lista-ordem { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.lista-ordem li {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
+  background: var(--painel-fundo); border-radius: 8px; padding: 6px 10px; min-height: 38px;
+}
+.lista-ordem li.mudou { animation: lampejo 1.8s ease-out; }
+.ordem-num { font-family: var(--mono); font-size: 14px; color: var(--texto-fraco); }
+.ordem-codigo { font-family: var(--mono); font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.delta { font-family: var(--mono); font-size: 13px; font-weight: 600; min-width: 34px; text-align: right; }
+.delta.subiu { color: var(--ok); }
+.delta.desceu { color: var(--texto-fraco); }
+.delta.igual { color: var(--texto-fraco); }
+.comparacao-resumo:empty { display: none; }
 
 /* ---------- Registro de operacoes ---------- */
 .registro {
@@ -229,5 +248,6 @@ td.chegou { font-family: var(--mono); color: var(--texto-suave); }
 @media (max-width: 520px) {
   .pagina { padding: 24px 16px 40px; }
   .nivel { grid-template-columns: 1fr; gap: 6px; }
+  .comparacao { grid-template-columns: 1fr; }
   .campos .botao, .proximo-linha .botao { width: 100%; }
 }
