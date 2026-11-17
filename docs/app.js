@@ -7,7 +7,8 @@
  * para WebAssembly (nucleo.js). Este arquivo so:
  *   1. chama as funcoes da ponte (interface_web/ponte_web.c);
  *   2. le o estado do sistema em JSON;
- *   3. desenha as tabelas na pagina.
+ *   3. desenha as tabelas na pagina;
+ *   4. anota no "Registro de operacoes" qual funcao do C foi usada.
  */
 "use strict";
 
@@ -27,11 +28,15 @@ const EXEMPLO = [
   ["TAM3090", "regular"], ["AZU4888", "panpan"],
 ];
 
+const MAX_REGISTRO = 30;
+
 const el = (id) => document.getElementById(id);
 
-let nucleo = null;         // funcoes do C
-let estado = null;         // ultima fotografia do sistema
-let idSelecionado = null;  // voo marcado na fila de espera
+let nucleo = null;              // funcoes do C
+let estado = null;              // ultima fotografia do sistema
+let idSelecionado = null;       // voo marcado na fila de espera
+let destaque = new Set();       // ids que acabaram de mudar (piscam uma vez)
+let idFrenteAnterior = null;    // para piscar o "Proximo a pousar" quando ele troca
 
 /* ---------- Pequenos ajudantes de tela ---------- */
 
@@ -44,6 +49,17 @@ function criar(tag, classe, texto) {
 
 function etiqueta(prioridade) {
   return criar("span", "etiqueta p-" + prioridade, prioridade);
+}
+
+/* O id do voo e a sua ordem de chegada (o contador reinicia com o sistema). */
+function ordemChegada(voo) {
+  return voo.id + "º";
+}
+
+function celulaChegada(voo) {
+  const celula = criar("td", "chegou", ordemChegada(voo));
+  celula.title = "Registrado em " + voo.chegada;
+  return celula;
 }
 
 function avisar(texto, tipo) {
@@ -62,6 +78,27 @@ function preencherPrioridades(select, niveis) {
   select.value = "regular";
 }
 
+/* ---------- Registro de operacoes ---------- */
+
+function limparRegistro() {
+  el("registro").replaceChildren();
+  el("registro-vazio").hidden = false;
+}
+
+/* texto: o que aconteceu; custo: complexidade; funcoes: o caminho no C. */
+function anotar(texto, custo, funcoes) {
+  const lista = el("registro");
+  const item = criar("li");
+  item.append(
+    criar("span", "registro-texto", texto),
+    criar("span", "registro-custo", custo),
+    criar("span", "registro-codigo", funcoes),
+  );
+  lista.prepend(item);
+  while (lista.children.length > MAX_REGISTRO) lista.lastElementChild.remove();
+  el("registro-vazio").hidden = true;
+}
+
 /* ---------- Desenho da pagina a partir do estado ---------- */
 
 function atualizar() {
@@ -75,17 +112,27 @@ function atualizar() {
   desenharHistorico();
   desenharNiveis();
   desenharAcoes(selecionado);
+
+  destaque = new Set();   // o lampejo vale so para esta atualizacao
 }
 
 function desenharProximo() {
   const caixa = el("proximo-voo");
   const proximo = estado.fila[0];
+  const idFrente = proximo ? proximo.id : null;
+
   caixa.replaceChildren();
+  caixa.classList.remove("mudou");
   if (proximo) {
     caixa.append(criar("span", "proximo-codigo", proximo.codigo), etiqueta(proximo.prioridade));
+    if (idFrente !== idFrenteAnterior) {
+      void caixa.offsetWidth;          // reinicia a animacao
+      caixa.classList.add("mudou");
+    }
   } else {
     caixa.append(criar("span", "vazio", "Nenhum voo aguardando"));
   }
+  idFrenteAnterior = idFrente;
   el("botao-pouso").disabled = !proximo;
 }
 
@@ -94,7 +141,10 @@ function desenharFila() {
   corpo.replaceChildren();
 
   for (const voo of estado.fila) {
-    const linha = criar("tr", voo.id === idSelecionado ? "selecionado" : "");
+    const classes = [];
+    if (voo.id === idSelecionado) classes.push("selecionado");
+    if (destaque.has(voo.id)) classes.push("mudou");
+    const linha = criar("tr", classes.join(" "));
 
     const radio = criar("input");
     radio.type = "radio";
@@ -113,7 +163,7 @@ function desenharFila() {
       criar("td", "mono", String(voo.posicao)),
       criar("td", "mono", voo.codigo),
       celulaPrioridade,
-      criar("td", "fraco", voo.chegada),
+      celulaChegada(voo),
     );
     linha.addEventListener("click", () => selecionar(voo.id));
     corpo.append(linha);
@@ -128,14 +178,14 @@ function desenharHistorico() {
   corpo.replaceChildren();
 
   estado.historico.forEach((voo, i) => {
-    const linha = criar("tr");
+    const linha = criar("tr", destaque.has(voo.id) ? "mudou" : "");
     const celulaPrioridade = criar("td");
     celulaPrioridade.append(etiqueta(voo.prioridade));
     linha.append(
       criar("td", "mono", String(estado.historico.length - i)),
       criar("td", "mono", voo.codigo),
       celulaPrioridade,
-      criar("td", "fraco", voo.chegada),
+      celulaChegada(voo),
     );
     corpo.append(linha);
   });
@@ -153,7 +203,11 @@ function desenharNiveis() {
     const doNivel = estado.fila.filter((voo) => voo.nivel === i + 1);
 
     if (doNivel.length === 0) voos.append(criar("span", "nivel-vazio", "vazia"));
-    for (const voo of doNivel) voos.append(criar("span", "ficha", voo.codigo));
+    for (const voo of doNivel) {
+      const ficha = criar("span", "ficha" + (destaque.has(voo.id) ? " mudou" : ""), voo.codigo);
+      ficha.title = "Chegou em " + ordemChegada(voo);
+      voos.append(ficha);
+    }
 
     const rotulo = criar("div");
     rotulo.append(etiqueta(nivel.nome));
@@ -177,9 +231,12 @@ function selecionar(id) {
   atualizar();
 }
 
-function codigoDe(id) {
-  const voo = estado.fila.concat(estado.historico).find((v) => v.id === id);
-  return voo ? voo.codigo : "id " + id;
+function vooNaFila(id) {
+  return estado.fila.find((v) => v.id === id) || null;
+}
+
+function indiceNivel(prioridade) {
+  return estado.niveis.findIndex((n) => n.nome === prioridade);
 }
 
 /* ---------- Acoes do usuario ---------- */
@@ -196,8 +253,17 @@ function aoRegistrar(evento) {
   }
   el("codigo").value = "";
   el("codigo").focus();
+  destaque.add(id);
   atualizar();
+
+  const voo = vooNaFila(id);
   avisar("Voo " + codigo + " registrado como " + prioridade + ".", "ok");
+  anotar(
+    "Registrou " + codigo + " (" + prioridade + "), chegou em " + ordemChegada(voo) +
+      ": entrou no fim de niveis[" + indiceNivel(prioridade) + "], posição " + voo.posicao + " da fila.",
+    "O(1)",
+    "sistema_cadastrar_voo → fila_prio_enfileirar",
+  );
 }
 
 function aoAutorizarPouso() {
@@ -206,19 +272,27 @@ function aoAutorizarPouso() {
     avisar("Não há voos aguardando.", "erro");
     return;
   }
+  destaque.add(id);
   atualizar();
+
   const voo = estado.historico[0];
   avisar("Pouso autorizado: " + voo.codigo + " (" + voo.prioridade + ").", "ok");
+  anotar(
+    "Pouso de " + voo.codigo + " (" + voo.prioridade + "): saiu da frente de niveis[" +
+      (voo.nivel - 1) + "] e foi para o início do histórico, sem cópia.",
+    "O(k), k = 5",
+    "sistema_autorizar_pouso → fila_prio_desenfileirar → lista_simples_inserir(…, 0)",
+  );
 }
 
 function aoReclassificar() {
   if (idSelecionado === null) return;
   const nova = el("nova-prioridade").value;
-  const voo = estado.fila.find((v) => v.id === idSelecionado);
-  const codigo = voo.codigo;
+  const antes = vooNaFila(idSelecionado);
+  const codigo = antes.codigo;
 
   /* Evita empilhar no "desfazer" uma troca que nao muda nada. */
-  if (voo.prioridade === nova) {
+  if (antes.prioridade === nova) {
     avisar("O voo " + codigo + " já é " + nova + ". Escolha outra prioridade.", "erro");
     return;
   }
@@ -226,45 +300,76 @@ function aoReclassificar() {
     avisar("Não foi possível reclassificar o voo " + codigo + " (limite de correções atingido).", "erro");
     return;
   }
+  destaque.add(idSelecionado);
   atualizar();
+
+  const depois = vooNaFila(idSelecionado);
   avisar("Voo " + codigo + " reclassificado para " + nova + ".", "ok");
+  anotar(
+    codigo + ": " + antes.prioridade + " → " + nova + " (posição " + antes.posicao + " → " +
+      depois.posicao + "). A prioridade antiga foi para a pilha desfazer e a fila foi reconstruída na ordem de chegada.",
+    "O(n)",
+    "gerenciador_reclassificar → pilha_array_empilhar → reconstruir_fila",
+  );
 }
 
-function aoDesfazer() {
+/* Desfazer e refazer tem a mesma forma: so mudam a funcao e o texto. */
+function aoDesfazerOuRefazer(desfazer) {
   if (idSelecionado === null) return;
-  const codigo = codigoDe(idSelecionado);
-  if (!nucleo.desfazer(idSelecionado)) {
-    avisar("O voo " + codigo + " não tem reclassificação para desfazer.", "erro");
-    return;
-  }
-  atualizar();
-  avisar("Reclassificação do voo " + codigo + " desfeita.", "ok");
-}
+  const antes = vooNaFila(idSelecionado);
+  const codigo = antes.codigo;
+  const ok = desfazer ? nucleo.desfazer(idSelecionado) : nucleo.refazer(idSelecionado);
 
-function aoRefazer() {
-  if (idSelecionado === null) return;
-  const codigo = codigoDe(idSelecionado);
-  if (!nucleo.refazer(idSelecionado)) {
-    avisar("O voo " + codigo + " não tem reclassificação para refazer.", "erro");
+  if (!ok) {
+    avisar("O voo " + codigo + " não tem reclassificação para " + (desfazer ? "desfazer" : "refazer") + ".", "erro");
     return;
   }
+  destaque.add(idSelecionado);
   atualizar();
-  avisar("Reclassificação do voo " + codigo + " refeita.", "ok");
+
+  const depois = vooNaFila(idSelecionado);
+  avisar("Reclassificação do voo " + codigo + (desfazer ? " desfeita." : " refeita."), "ok");
+  anotar(
+    codigo + ": " + antes.prioridade + " → " + depois.prioridade + " (posição " + antes.posicao +
+      " → " + depois.posicao + "). " +
+      (desfazer ? "Desempilhou da pilha desfazer e guardou a atual na pilha refazer."
+                : "Desempilhou da pilha refazer e guardou a atual na pilha desfazer."),
+    "O(n)",
+    (desfazer ? "gerenciador_desfazer" : "gerenciador_refazer") + " → reconstruir_fila",
+  );
 }
 
 function aoCarregarExemplo() {
   nucleo.iniciar();
   idSelecionado = null;
   for (const [codigo, prioridade] of EXEMPLO) nucleo.registrar(codigo, prioridade);
+
+  /* Pisca o mayday: chegou em 6º e ja esta na posicao 0. */
+  const frente = JSON.parse(nucleo.estado()).fila[0];
+  destaque.add(frente.id);
   atualizar();
+
+  limparRegistro();
   avisar("Exemplo carregado: 8 voos em horário de pico. O mayday chegou em 6º e é o próximo.", "ok");
+  anotar(
+    "Exemplo: 8 voos em horário de pico. " + frente.codigo + " (" + frente.prioridade + ") chegou em " +
+      ordemChegada(frente) + " e está na posição 0.",
+    "8 × O(1)",
+    "sistema_destruir → sistema_iniciar → 8 × sistema_cadastrar_voo",
+  );
 }
 
 function aoReiniciar() {
   nucleo.iniciar();
   idSelecionado = null;
   atualizar();
+  limparRegistro();
   avisar("Sistema reiniciado. Registre um voo para começar.");
+  anotar(
+    "Sistema reiniciado: a memória de todos os voos foi liberada.",
+    "O(n)",
+    "sistema_destruir → sistema_iniciar",
+  );
 }
 
 /* ---------- Partida ---------- */
@@ -288,8 +393,8 @@ criarNucleo().then((modulo) => {
   el("form-voo").addEventListener("submit", aoRegistrar);
   el("botao-pouso").addEventListener("click", aoAutorizarPouso);
   el("botao-reclassificar").addEventListener("click", aoReclassificar);
-  el("botao-desfazer").addEventListener("click", aoDesfazer);
-  el("botao-refazer").addEventListener("click", aoRefazer);
+  el("botao-desfazer").addEventListener("click", () => aoDesfazerOuRefazer(true));
+  el("botao-refazer").addEventListener("click", () => aoDesfazerOuRefazer(false));
   el("botao-exemplo").addEventListener("click", aoCarregarExemplo);
   el("botao-reiniciar").addEventListener("click", aoReiniciar);
 

@@ -61,7 +61,7 @@
       <div class="rolagem">
         <table>
           <thead>
-            <tr><th class="col-sel"><span class="so-leitor">Selecionar</span></th><th>Pos.</th><th>Código</th><th>Prioridade</th><th>Chegada</th></tr>
+            <tr><th class="col-sel"><span class="so-leitor">Selecionar</span></th><th>Pos.</th><th>Código</th><th>Prioridade</th><th>Chegou</th></tr>
           </thead>
           <tbody id="corpo-fila"></tbody>
         </table>
@@ -81,19 +81,30 @@
       </div>
     </div>
 
-    <div class="cartao">
-      <div class="cartao-topo">
-        <h2>Histórico de pousos</h2>
-        <p class="nota">mais recente primeiro</p>
+    <div class="pilha-cartoes">
+      <div class="cartao">
+        <div class="cartao-topo">
+          <h2>Histórico de pousos</h2>
+          <p class="nota">mais recente primeiro</p>
+        </div>
+        <div class="rolagem">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Código</th><th>Prioridade</th><th>Chegou</th></tr>
+            </thead>
+            <tbody id="corpo-historico"></tbody>
+          </table>
+          <p id="historico-vazio" class="vazio bloco">Nenhum pouso autorizado ainda.</p>
+        </div>
       </div>
-      <div class="rolagem">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Código</th><th>Prioridade</th><th>Chegada</th></tr>
-          </thead>
-          <tbody id="corpo-historico"></tbody>
-        </table>
-        <p id="historico-vazio" class="vazio bloco">Nenhum pouso autorizado ainda.</p>
+
+      <div class="cartao">
+        <div class="cartao-topo">
+          <h2>Registro de operações</h2>
+          <p class="nota">mais recente primeiro</p>
+        </div>
+        <ol id="registro" class="registro"></ol>
+        <p id="registro-vazio" class="vazio">Cada ação aparece aqui, com a estrutura usada e o custo.</p>
       </div>
     </div>
   </section>

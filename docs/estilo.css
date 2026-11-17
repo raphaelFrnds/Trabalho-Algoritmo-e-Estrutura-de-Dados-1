@@ -99,6 +99,7 @@ a { color: var(--destaque); }
 
 .faixa { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; }
 .colunas { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; align-items: start; }
+.pilha-cartoes { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 
 /* ---------- Formulario e botoes ---------- */
 .campos { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
@@ -158,6 +159,22 @@ td.fraco { color: var(--texto-fraco); font-size: 14px; }
 #corpo-fila tr.selecionado { background: var(--linha-selecionada); }
 #corpo-fila input[type="radio"] { width: 16px; height: 16px; accent-color: var(--destaque); margin: 0; vertical-align: middle; padding: 0; }
 
+td.chegou { font-family: var(--mono); color: var(--texto-suave); }
+
+/* Destaque do que acabou de mudar: um lampejo ambar que some sozinho. */
+@keyframes lampejo {
+  0%, 35% { background-color: #fde3b5; }
+  100%    { background-color: transparent; }
+}
+#corpo-fila tr.mudou td, #corpo-historico tr.mudou td { animation: lampejo 1.8s ease-out; }
+.ficha.mudou { animation: lampejo 1.8s ease-out; }
+.proximo-voo.mudou { animation: lampejo 1.8s ease-out; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  #corpo-fila tr.mudou td, #corpo-historico tr.mudou td, .ficha.mudou, .proximo-voo.mudou {
+    animation: none; background-color: #fde3b5;
+  }
+}
+
 .vazio { color: var(--texto-fraco); font-size: 15px; }
 .vazio.bloco { padding: 18px 10px; }
 
@@ -178,6 +195,29 @@ td.fraco { color: var(--texto-fraco); font-size: 14px; }
   border: 1px solid var(--borda); border-radius: 6px; padding: 3px 9px; background: var(--painel);
 }
 .nivel-vazio { font-family: var(--mono); font-size: 13px; color: var(--texto-fraco); }
+
+/* ---------- Registro de operacoes ---------- */
+.registro {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  max-height: 340px; overflow-y: auto;
+}
+.registro li {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--linha);
+}
+.registro li:first-child { padding-top: 0; }
+.registro li:last-child { border-bottom: none; }
+.registro-texto { font-size: 15px; }
+.registro-custo {
+  font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap;
+  background: var(--painel-fundo); border: 1px solid var(--borda);
+  border-radius: 6px; padding: 1px 8px; align-self: start;
+}
+.registro-codigo {
+  grid-column: 1 / -1; font-family: var(--mono); font-size: 12.5px; color: var(--texto-fraco);
+  overflow-wrap: anywhere;
+}
 
 /* ---------- Rodape ---------- */
 .rodape { color: var(--texto-fraco); font-size: 14px; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; }
