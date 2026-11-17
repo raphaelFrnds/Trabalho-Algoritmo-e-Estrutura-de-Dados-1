@@ -8,7 +8,7 @@
  *   1. chama as funcoes da ponte (interface_web/ponte_web.c);
  *   2. le o estado do sistema em JSON;
  *   3. desenha as tabelas na pagina;
- *   4. anota no "Registro de operacoes" qual funcao do C foi usada.
+ *   4. anota cada acao no cartao "Atividade recente".
  */
 "use strict";
 
@@ -78,22 +78,31 @@ function preencherPrioridades(select, niveis) {
   select.value = "regular";
 }
 
-/* ---------- Registro de operacoes ---------- */
+/* ---------- Atividade recente ---------- */
 
 function limparRegistro() {
   el("registro").replaceChildren();
   el("registro-vazio").hidden = false;
 }
 
-/* texto: o que aconteceu; custo: complexidade; funcoes: o caminho no C. */
-function anotar(texto, custo, funcoes) {
+/*
+ * tipo: "registro" | "pouso" | "correcao" | "sistema" (define a cor);
+ * rotulo: texto do selo; partes: textos e elementos da frase, em ordem.
+ */
+function anotar(tipo, rotulo, partes) {
   const lista = el("registro");
   const item = criar("li");
-  item.append(
-    criar("span", "registro-texto", texto),
-    criar("span", "registro-custo", custo),
-    criar("span", "registro-codigo", funcoes),
+
+  const topo = criar("div", "registro-topo");
+  topo.append(
+    criar("span", "registro-tipo tipo-" + tipo, rotulo),
+    criar("span", "registro-hora", new Date().toLocaleTimeString("pt-BR")),
   );
+
+  const texto = criar("p", "registro-texto");
+  for (const parte of partes) texto.append(typeof parte === "string" ? criar("span", "", parte) : parte);
+
+  item.append(topo, texto);
   lista.prepend(item);
   while (lista.children.length > MAX_REGISTRO) lista.lastElementChild.remove();
   el("registro-vazio").hidden = true;
@@ -235,8 +244,8 @@ function vooNaFila(id) {
   return estado.fila.find((v) => v.id === id) || null;
 }
 
-function indiceNivel(prioridade) {
-  return estado.niveis.findIndex((n) => n.nome === prioridade);
+function codigoForte(codigo) {
+  return criar("b", "", codigo);
 }
 
 /* ---------- Acoes do usuario ---------- */
@@ -258,12 +267,9 @@ function aoRegistrar(evento) {
 
   const voo = vooNaFila(id);
   avisar("Voo " + codigo + " registrado como " + prioridade + ".", "ok");
-  anotar(
-    "Registrou " + codigo + " (" + prioridade + "), chegou em " + ordemChegada(voo) +
-      ": entrou no fim de niveis[" + indiceNivel(prioridade) + "], posição " + voo.posicao + " da fila.",
-    "O(1)",
-    "sistema_cadastrar_voo → fila_prio_enfileirar",
-  );
+  anotar("registro", "Voo registrado", [
+    codigoForte(codigo), "entrou na fila como", etiqueta(prioridade), "· posição " + voo.posicao,
+  ]);
 }
 
 function aoAutorizarPouso() {
@@ -277,12 +283,10 @@ function aoAutorizarPouso() {
 
   const voo = estado.historico[0];
   avisar("Pouso autorizado: " + voo.codigo + " (" + voo.prioridade + ").", "ok");
-  anotar(
-    "Pouso de " + voo.codigo + " (" + voo.prioridade + "): saiu da frente de niveis[" +
-      (voo.nivel - 1) + "] e foi para o início do histórico, sem cópia.",
-    "O(k), k = 5",
-    "sistema_autorizar_pouso → fila_prio_desenfileirar → lista_simples_inserir(…, 0)",
-  );
+  anotar("pouso", "Pouso autorizado", [
+    codigoForte(voo.codigo), "pousou", etiqueta(voo.prioridade),
+    "· " + estado.aguardando + (estado.aguardando === 1 ? " voo ainda aguardando" : " voos ainda aguardando"),
+  ]);
 }
 
 function aoReclassificar() {
@@ -305,12 +309,10 @@ function aoReclassificar() {
 
   const depois = vooNaFila(idSelecionado);
   avisar("Voo " + codigo + " reclassificado para " + nova + ".", "ok");
-  anotar(
-    codigo + ": " + antes.prioridade + " → " + nova + " (posição " + antes.posicao + " → " +
-      depois.posicao + "). A prioridade antiga foi para a pilha desfazer e a fila foi reconstruída na ordem de chegada.",
-    "O(n)",
-    "gerenciador_reclassificar → pilha_array_empilhar → reconstruir_fila",
-  );
+  anotar("correcao", "Prioridade corrigida", [
+    codigoForte(codigo), etiqueta(antes.prioridade), "→", etiqueta(nova),
+    "· posição " + antes.posicao + " → " + depois.posicao,
+  ]);
 }
 
 /* Desfazer e refazer tem a mesma forma: so mudam a funcao e o texto. */
@@ -329,14 +331,10 @@ function aoDesfazerOuRefazer(desfazer) {
 
   const depois = vooNaFila(idSelecionado);
   avisar("Reclassificação do voo " + codigo + (desfazer ? " desfeita." : " refeita."), "ok");
-  anotar(
-    codigo + ": " + antes.prioridade + " → " + depois.prioridade + " (posição " + antes.posicao +
-      " → " + depois.posicao + "). " +
-      (desfazer ? "Desempilhou da pilha desfazer e guardou a atual na pilha refazer."
-                : "Desempilhou da pilha refazer e guardou a atual na pilha desfazer."),
-    "O(n)",
-    (desfazer ? "gerenciador_desfazer" : "gerenciador_refazer") + " → reconstruir_fila",
-  );
+  anotar("correcao", desfazer ? "Correção desfeita" : "Correção refeita", [
+    codigoForte(codigo), etiqueta(antes.prioridade), "→", etiqueta(depois.prioridade),
+    "· posição " + antes.posicao + " → " + depois.posicao,
+  ]);
 }
 
 function aoCarregarExemplo() {
@@ -351,12 +349,9 @@ function aoCarregarExemplo() {
 
   limparRegistro();
   avisar("Exemplo carregado: 8 voos em horário de pico. O mayday chegou em 6º e é o próximo.", "ok");
-  anotar(
-    "Exemplo: 8 voos em horário de pico. " + frente.codigo + " (" + frente.prioridade + ") chegou em " +
-      ordemChegada(frente) + " e está na posição 0.",
-    "8 × O(1)",
-    "sistema_destruir → sistema_iniciar → 8 × sistema_cadastrar_voo",
-  );
+  anotar("sistema", "Exemplo carregado", [
+    "8 voos registrados em horário de pico. Próximo a pousar:", codigoForte(frente.codigo), etiqueta(frente.prioridade),
+  ]);
 }
 
 function aoReiniciar() {
@@ -365,11 +360,7 @@ function aoReiniciar() {
   atualizar();
   limparRegistro();
   avisar("Sistema reiniciado. Registre um voo para começar.");
-  anotar(
-    "Sistema reiniciado: a memória de todos os voos foi liberada.",
-    "O(n)",
-    "sistema_destruir → sistema_iniciar",
-  );
+  anotar("sistema", "Sistema reiniciado", ["Fila e histórico foram esvaziados."]);
 }
 
 /* ---------- Partida ---------- */

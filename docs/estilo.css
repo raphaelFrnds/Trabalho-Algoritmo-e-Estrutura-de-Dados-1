@@ -196,27 +196,32 @@ td.chegou { font-family: var(--mono); color: var(--texto-suave); }
 }
 .nivel-vazio { font-family: var(--mono); font-size: 13px; color: var(--texto-fraco); }
 
-/* ---------- Registro de operacoes ---------- */
+/* ---------- Atividade recente ---------- */
 .registro {
   list-style: none; margin: 0; padding: 0;
   display: flex; flex-direction: column;
   max-height: 340px; overflow-y: auto;
 }
 .registro li {
-  display: grid; grid-template-columns: 1fr auto; gap: 2px 12px;
+  display: flex; flex-direction: column; gap: 4px;
   padding: 10px 0; border-bottom: 1px solid var(--linha);
 }
 .registro li:first-child { padding-top: 0; }
 .registro li:last-child { border-bottom: none; }
-.registro-texto { font-size: 15px; }
-.registro-custo {
-  font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap;
-  background: var(--painel-fundo); border: 1px solid var(--borda);
-  border-radius: 6px; padding: 1px 8px; align-self: start;
+.registro-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.registro-tipo {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+  border-radius: 999px; padding: 1px 9px; white-space: nowrap;
 }
-.registro-codigo {
-  grid-column: 1 / -1; font-family: var(--mono); font-size: 12.5px; color: var(--texto-fraco);
-  overflow-wrap: anywhere;
+.tipo-registro { background: #e2ecf8; color: #1d4a7a; }
+.tipo-pouso    { background: #e0f1e6; color: #1b6e3a; }
+.tipo-correcao { background: #fbecd6; color: #8a4a06; }
+.tipo-sistema  { background: var(--botao); color: var(--texto-suave); }
+.registro-hora { font-family: var(--mono); font-size: 13px; color: var(--texto-fraco); }
+.registro-texto {
+  font-size: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px;
+}
+.registro-texto b { font-family: var(--mono); font-weight: 600;
 }
 
 /* ---------- Rodape ---------- */
